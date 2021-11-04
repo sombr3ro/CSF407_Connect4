@@ -19,6 +19,14 @@ class gameEnv:
             return False
         else:
             return True
+
+    def get_action_space(self):
+
+        actions = []
+        for i in range(1,self.w+1):
+            if self.check_valid_move(i):
+                actions.append(i)
+        return actions
     
     def make_move(self,action, player):
 

@@ -49,6 +49,8 @@ class MCTS:
             result = self.simulate(child, simulation_env)
             self.backpropagate(path, result)
         
+        print(f"Total Size of the tree is: {self.size_of_tree(self.root_node)}")
+        print(f"Total depth of the tree is: {self.depth_of_tree(self.root_node)}")
         return self.next_best_move(self.root_node)
 
     
@@ -142,6 +144,19 @@ class MCTS:
 
         self.root_node = self.root_node.children[action]
         pass
+
+    def size_of_tree(self,node):
+        #Calculates total size of the tree
+        total_size = 1
+        for child in node.children.values():
+            total_size+= self.size_of_tree(child)
+        return total_size 
+
+    def depth_of_tree(self,node):
+        depth = 1
+        for child in node.children.values():
+            depth = max(depth,self.depth_of_tree(child)+1)
+        return depth 
 
 
 if __name__=='__main__':

@@ -47,7 +47,7 @@ class gameEnv:
             if self.grid[self.h-1][i] == 0:
                 return 0
         
-        return -1
+        return 2
 
     def victory_move(self, x, y, player):
         #Finds if the current action has resulted in a victory move

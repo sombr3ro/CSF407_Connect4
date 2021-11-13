@@ -116,6 +116,15 @@ class gameEnv:
             print()
         pass
 
+    def generate_string(self):
+        #Generate a one line string summarizing the board
+
+        s = ""
+        for i in self.grid:
+            for j in i:
+                s = s + str(i)
+        return s
+
 
 if __name__=='__main__':
 

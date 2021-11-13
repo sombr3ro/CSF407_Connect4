@@ -31,28 +31,46 @@ class Node:
 
 class MCTS:
 
-    def __init__(self, playouts = 20, C = 1):
+    def __init__(self, playouts = 20, C = 1, player=2):
         self.playouts = playouts
         self.C = C 
         self.root_node = Node()
+        self.player = player
 
     def single_run(self, game_env):
         #Performs a single evaluation of the game and return the next best move
-
+        #print(game_env.get_action_space())
+        #self.print_tree_details()
+        
         for p in range(self.playouts):
             simulation_env = gameEnv(game_env)
             top_node = self.root_node
-            
+
             top_node,path = self.selection(top_node, simulation_env)
             child = self.expand_node(top_node, path, simulation_env)
 
             result = self.simulate(child, simulation_env)
             self.backpropagate(path, result)
+
+        #print(game_env.get_action_space())
+        #self.print_tree_details()
         
+        next_move = self.next_best_move(self.root_node)
+
+        if(next_move==None):
+            self.print_tree_details()
+            game_env.print_grid()
+
+        return next_move
+
+    def print_tree_details(self):
         print(f"Total Size of the tree is: {self.size_of_tree(self.root_node)}")
         print(f"Total depth of the tree is: {self.depth_of_tree(self.root_node)}")
-        return self.next_best_move(self.root_node)
-
+        print(f"Average rewards for each future action")
+        for action,child in self.root_node.children.items():
+            print(f"{action}: {child.reward}/{child.total_trials}", end = "\t")
+        print()
+        pass
     
     def UCB1(self, node):
         #Returns the node with the best UCB value
@@ -80,7 +98,7 @@ class MCTS:
         while not node.is_leaf and node.terminal_state==0:
             action, child = self.UCB1(node)
             path.append(child)
-            child.terminal_state = env.make_move(action, node.player)
+            child.terminal_state = env.make_move(action, self.get_player_val(node.player))
             node = child
         
         return node,path
@@ -99,7 +117,7 @@ class MCTS:
         next_action = np.random.choice(action_space)
         node = node.children[next_action]
         path.append(node)
-        node.terminal_state = env.make_move(next_action, -1*node.player)
+        node.terminal_state = env.make_move(next_action, self.get_player_val(-1*node.player))
         return node
 
     def simulate(self,node,env):
@@ -112,7 +130,7 @@ class MCTS:
         
         while reward==0:
             next_action = np.random.choice(env.get_action_space())
-            reward = env.make_move(next_action, player)
+            reward = env.make_move(next_action, self.get_player_val(player))
             player *=-1
 
         return player*reward
@@ -120,10 +138,16 @@ class MCTS:
     def backpropagate(self, path, result):
         #Performs backprop after a single playout
         for node in reversed(path):
-            if node.player==1 and result==1:
-                node.reward+=1
-            elif node.player==-1 and result==-1:
-                node.reward+=1
+            if result==1:
+                if node.player==1:
+                    node.reward+=1
+                else:
+                    node.reward-=1
+            elif result==-1:
+                if node.player==1:
+                    node.reward-=1
+                else:
+                    node.reward+=1
             node.total_trials+=1
         pass
 
@@ -139,7 +163,8 @@ class MCTS:
 
     def update_node(self,action):
         #Updates the root node of the MCTS object based on the action taken
-        if not(self.root_node.children):
+        if not(self.root_node.children and (action in self.root_node.children)):
+            self.root_node = Node()
             return
 
         self.root_node = self.root_node.children[action]
@@ -158,43 +183,106 @@ class MCTS:
             depth = max(depth,self.depth_of_tree(child)+1)
         return depth 
 
+    def get_player_val(self,player):
+        #Returns the player id to return to the game world object
+
+        if (player==1):
+            return self.player
+        else:
+            if(self.player==1):
+                return 2
+            else:
+                return 1
+
+    def reset_agents(self):
+        #Reset the MCTS trees for a new game
+        self.root_node = Node()
 
 if __name__=='__main__':
 
     game = gameEnv(height=6,width=5,win_streak=4)
-    comp_play = MCTS()
+    comp_play_1 = MCTS(playouts=200, player=1, C=2)
+    comp_play_2 = MCTS(playouts=10, player=2, C=2)
 
-    game.print_grid()
+    #game.print_grid()
 
-    while True:
+    player1_wins = 0
+    player2_wins = 0
+    stalemates = 0
+    for i in range(100):
+        while True:
 
-        print("Human player, make a move")
-        move = int(input())
-        res = game.make_move(move,-1)
-        game.print_grid()
+            '''
+            print("Human player, make a move")
+            move = int(input())
+            res = game.make_move(abs(move),1)
+            game.print_grid()
 
-        if not(res==0):
-            if(res==2):
-                print("Stalemate")
+            if not(res==0):
+                if(res==2):
+                    print("Stalemate")
+                else:
+                    print("Hooman wins ;(")
+                break
+
+            comp_play.update_node(abs(move))
+
+            print(f"My chance, HumAn")
+            if(move>0):
+                comp_move = comp_play.single_run(game)
             else:
-                print("Hooman wins ;(")
-            break
+                comp_move = int(input())
+            print(f"Lemme try {comp_move}")
+            res = game.make_move(comp_move,2)
+            game.print_grid()
 
-        comp_play.update_node(move)
+            if not(res==0):
+                if(res==2):
+                    print("Stalemate")
+                else:
+                    print("Me win ;)")
+                break
+            comp_play.update_node(move)
+            '''
 
-        comp_move = comp_play.single_run(game)
-        print(f"My chance, HumAn, lemme try {comp_move}")
-        res = game.make_move(comp_move,1)
-        game.print_grid()
+            #print("player 1, make a move")
+            move = comp_play_1.single_run(game)
+            res = game.make_move(move,1)
+            #game.print_grid()
 
-        if not(res==0):
-            if(res==2):
-                print("Stalemate")
+            if not(res==0):
+                if(res==2):
+                    #print("Stalemate")
+                    stalemates+=1
+                else:
+                    #print("Player 1 wins ;(")
+                    player1_wins+=1
+                break
+
+            comp_play_1.update_node(abs(move))
+            comp_play_2.update_node(abs(move))
+
+            #print(f"Player 2, make a move")
+            if(move>0):
+                comp_move = comp_play_2.single_run(game)
             else:
-                print("Me win ;)")
-            break
-        comp_play.update_node(move)
-    
+                comp_move = int(input())
+            #print(f"Lemme try {comp_move}")
+            res = game.make_move(comp_move,2)
+            #game.print_grid()
+
+            if not(res==0):
+                if(res==2):
+                    #print("Stalemate")
+                    stalemates+=1
+                else:
+                    #print("Player 2 win ;)")
+                    player2_wins+=1
+                break
+            comp_play_1.update_node(abs(move))
+            comp_play_2.update_node(abs(move))
         
-        
+    print(f"Player 1 wins: {player1_wins}")
+    print(f"Player 2 wins: {player2_wins}")
+    print(f"Stalemates: {stalemates}")
 

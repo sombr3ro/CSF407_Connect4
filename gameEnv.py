@@ -1,4 +1,5 @@
 import numpy as np
+import sys
 
 class gameEnv:
     def __init__(self, env_copy = None,  height = None, width = None, win_streak = 4):
@@ -13,12 +14,18 @@ class gameEnv:
             self.w = env_copy.w
             self.grid = env_copy.grid.copy()
             self.win_streak = env_copy.win_streak
+        
+        self.history = []
+        self.action_history = []
     
     def check_valid_move(self, action):
+        if (action > self.w):
+            return False
+        
         if (self.grid[self.h-1][action-1] != 0):
             return False
-        else:
-            return True
+        
+        return True
 
     def get_action_space(self):
 
@@ -28,10 +35,10 @@ class gameEnv:
                 actions.append(i)
         return actions
     
-    def make_move(self,action, player):
+    def make_move(self,action, player, track_history = False):
 
         if not(self.check_valid_move(action)):
-            assert("Not a valid move")
+            sys.exit("Not a valid move")
         
         insert_pos = -1
         for i in range(self.h):
@@ -39,6 +46,10 @@ class gameEnv:
               self.grid[i][action-1] = player
               insert_pos = i
               break
+        
+        if (track_history):
+            self.history.append(self.grid.copy())
+            self.action_history.append(action)
 
         if(self.victory_move(action-1, insert_pos, player)):
             return 1
@@ -125,10 +136,25 @@ class gameEnv:
                 s = s + str(i)
         return s
 
+    def print_history(self):
+        for curr_grid in self.history:
+            for i in range(self.h-1,-1,-1):
+                for j in range(self.w):
+                    print(curr_grid[i][j], end = " ")
+                print()
+            print("\n\n")
+        print(self.action_history)
+        pass
+
+    def reset_game(self):
+        self.grid = np.zeros((self.h, self.w), dtype=int)
+        self.history = []
+        self.action_history = []
+
 
 if __name__=='__main__':
 
-    game = gameEnv(height = 3,width = 3, win_streak=3)
+    game = gameEnv(height = 6,width = 5, win_streak=3)
     game.print_grid()
 
     player = 0

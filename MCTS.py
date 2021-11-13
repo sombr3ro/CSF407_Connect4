@@ -39,9 +39,9 @@ class MCTS:
 
     def single_run(self, game_env):
         #Performs a single evaluation of the game and return the next best move
-        #print(game_env.get_action_space())
-        #self.print_tree_details()
         
+        #self.root_node.terminal_state = False       #No idea why
+
         for p in range(self.playouts):
             simulation_env = gameEnv(game_env)
             top_node = self.root_node
@@ -57,9 +57,17 @@ class MCTS:
         
         next_move = self.next_best_move(self.root_node)
 
+        '''
         if(next_move==None):
+            #print(s)
+            print(f"terminal state {self.root_node.terminal_state}")
+            print(self.root_node.is_leaf)
+            print(self.root_node.total_trials)
+            print(self.root_node.reward)
             self.print_tree_details()
+            game_env.print_history()
             game_env.print_grid()
+        '''
 
         return next_move
 
@@ -95,7 +103,7 @@ class MCTS:
         #Performs selection using UCB based policy
         path = []
         path.append(node)
-        while not node.is_leaf and node.terminal_state==0:
+        while (not node.is_leaf ) and (node.terminal_state==0):
             action, child = self.UCB1(node)
             path.append(child)
             child.terminal_state = env.make_move(action, self.get_player_val(node.player))
@@ -159,6 +167,8 @@ class MCTS:
             if (moves < child.total_trials):
                 moves = child.total_trials
                 best_action = action
+            if (child.terminal_state==1):
+                return action
         return best_action
 
     def update_node(self,action):
@@ -201,88 +211,81 @@ class MCTS:
 if __name__=='__main__':
 
     game = gameEnv(height=6,width=5,win_streak=4)
-    comp_play_1 = MCTS(playouts=200, player=1, C=2)
-    comp_play_2 = MCTS(playouts=10, player=2, C=2)
+    comp_play_1 = MCTS(playouts=200, player=1, C=1)
+    comp_play_2 = MCTS(playouts=40, player=2, C=1)
 
-    #game.print_grid()
+    human_player = False
+    debug = False
+    verbose = False
+    total_runs = 100
 
     player1_wins = 0
     player2_wins = 0
     stalemates = 0
-    for i in range(100):
+    for i in range(total_runs):
         while True:
 
-            '''
-            print("Human player, make a move")
-            move = int(input())
-            res = game.make_move(abs(move),1)
-            game.print_grid()
-
-            if not(res==0):
-                if(res==2):
-                    print("Stalemate")
-                else:
-                    print("Hooman wins ;(")
-                break
-
-            comp_play.update_node(abs(move))
-
-            print(f"My chance, HumAn")
-            if(move>0):
-                comp_move = comp_play.single_run(game)
+            if (human_player):
+                print("Player 1, make a move")
+                move1 = int(input())
             else:
-                comp_move = int(input())
-            print(f"Lemme try {comp_move}")
-            res = game.make_move(comp_move,2)
-            game.print_grid()
+                if (verbose):
+                    print("Player 1 makes a move")
+                move1 = comp_play_1.single_run(game)
+            res = game.make_move(move1,1, track_history=debug)
+            
+            if (human_player or debug or verbose):
+                print(f"Lemme try {move1}")
+                game.print_grid()
 
             if not(res==0):
                 if(res==2):
-                    print("Stalemate")
-                else:
-                    print("Me win ;)")
-                break
-            comp_play.update_node(move)
-            '''
-
-            #print("player 1, make a move")
-            move = comp_play_1.single_run(game)
-            res = game.make_move(move,1)
-            #game.print_grid()
-
-            if not(res==0):
-                if(res==2):
-                    #print("Stalemate")
+                    if (verbose):
+                        print("Stalemate")
                     stalemates+=1
                 else:
-                    #print("Player 1 wins ;(")
+                    if (verbose):
+                        print("Player 1 wins ;(")
                     player1_wins+=1
                 break
 
-            comp_play_1.update_node(abs(move))
-            comp_play_2.update_node(abs(move))
+            if not human_player:
+                comp_play_1.update_node(abs(move1))
+            comp_play_2.update_node(abs(move1))
 
-            #print(f"Player 2, make a move")
-            if(move>0):
-                comp_move = comp_play_2.single_run(game)
+            if (human_player or debug or verbose):
+                print(f"Player 2, make a move")
+            
+            if(move1>0):
+                move2 = comp_play_2.single_run(game)
             else:
-                comp_move = int(input())
-            #print(f"Lemme try {comp_move}")
-            res = game.make_move(comp_move,2)
-            #game.print_grid()
+                move2 = int(input())
+
+            res = game.make_move(move2,2, track_history=debug)
+        
+            if (human_player or debug or verbose):
+                print(f"Lemme try {move2}")
+                print()
+                game.print_grid()
 
             if not(res==0):
                 if(res==2):
-                    #print("Stalemate")
+                    if (verbose):
+                        print("Stalemate")
                     stalemates+=1
                 else:
-                    #print("Player 2 win ;)")
+                    if (verbose):
+                        print("Player 2 win ;)")
                     player2_wins+=1
                 break
-            comp_play_1.update_node(abs(move))
-            comp_play_2.update_node(abs(move))
+            comp_play_1.update_node(abs(move2))
+            comp_play_2.update_node(abs(move2))
+        
+        game.reset_game()
+        comp_play_1.reset_agents()
+        comp_play_2.reset_agents()
         
     print(f"Player 1 wins: {player1_wins}")
     print(f"Player 2 wins: {player2_wins}")
     print(f"Stalemates: {stalemates}")
-
+    

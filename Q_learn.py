@@ -29,6 +29,18 @@ class Q_learning_algo:
             self.Q_table[key] = self.initial_Q_value
             return self.initial_Q_value
     
+    def set_Qvalue(self,state, action, player, value):
+        '''
+            Refers to the after-state implementation and stores it in that form
+        '''
+
+        temp_game = gameEnv(env_copy=state)
+        temp_game.make_move(action,player)
+        key = temp_game.generate_string()
+
+        self.Q_table[key] = value
+        pass
+    
     def save_Q_table(self, file_name):
         #Save the Q_table
         try:
@@ -46,6 +58,53 @@ class Q_learning_algo:
             filehandler.close()
         except:
             print("Failed to load the file "+filename)
+    
+    def get_reward(self,terminal_state):
+        #Returns reward according to the terminal state
+        terminal_reward = 50
+        if(terminal_state==0):
+            reward = -1
+        elif(terminal_state==1):
+            reward = terminal_reward
+        else:
+            return 0
+        return reward
+
+    def train(self, epoch=100, agent = None, game = None):
+        #To be completed
+
+
+        for e in epoch:
+            while True:
+                move1 = agent.single_run(game)
+                state  = game.make_move(move1,1)
+                reward = self.get_reward(state)
+                agent.update_node(move1)
+
+                #Action selection using e-greedy policy
+                action_space = game.get_action_space()
+                if (np.random.random() < self.greedy_prob):
+                    move2 = np.random.choice(action_space)
+                else:
+                    best_action = None
+                    best_q_val = - np.inf
+                    for a in action_space:
+                        q_val = self.get_Qvalue(game,a,2)
+                        if(q_val > best_q_val):
+                            best_q_val = q_val
+                            best_action = a
+                    move2 = best_action
+                
+                #Perform move 2
+                state = game.make_move(move2,2)
+                agent.update_node(move2)
+                reward
+
+                #Q(S,a) update step
+                key = game.generate_string()
+                action_space = game.get_action_space()
+
+        pass
 
 if __name__=='__main__':
     agent = Q_learning_algo()

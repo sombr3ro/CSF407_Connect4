@@ -5,7 +5,7 @@ class gameEnv:
     def __init__(self, env_copy = None,  height = None, width = None, win_streak = 4):
 
         if (env_copy == None):
-            self.win_streak = 4
+            self.win_streak = win_streak
             self.h = height 
             self.w = width
             self.grid = np.zeros((height, width), dtype=int)
@@ -18,11 +18,16 @@ class gameEnv:
         self.history = []
         self.action_history = []
     
-    def check_valid_move(self, action):
+    def check_valid_move(self, action, debug = False):
         if (action > self.w):
+            if (debug):
+                print("Illegal action command")
             return False
         
         if (self.grid[self.h-1][action-1] != 0):
+            if (debug):
+                print(f"Column already filled: {self.h-1}")
+                self.print_grid()
             return False
         
         return True
@@ -37,8 +42,8 @@ class gameEnv:
     
     def make_move(self,action, player, track_history = False):
 
-        if not(self.check_valid_move(action)):
-            sys.exit("Not a valid move")
+        if not(self.check_valid_move(action, debug=True)):
+            sys.exit(f"Move {action} is not a valid move by player {player}")
         
         insert_pos = -1
         for i in range(self.h):
@@ -77,7 +82,7 @@ class gameEnv:
             j+=1
         
         #horizontal check
-        i = max(0, x - self.win_streak-1)
+        i = max(0, x - (self.win_streak-1))
         count=0
         while(i < min(x + self.win_streak, self.w)):
             if(self.grid[y][i]==player):
@@ -154,7 +159,7 @@ class gameEnv:
 
 if __name__=='__main__':
 
-    game = gameEnv(height = 6,width = 5, win_streak=3)
+    game = gameEnv(height = 4,width = 3, win_streak=3)
     game.print_grid()
 
     player = 0

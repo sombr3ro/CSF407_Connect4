@@ -210,7 +210,7 @@ class MCTS:
 
 if __name__=='__main__':
 
-    game = gameEnv(height=6,width=5,win_streak=4)
+    game = gameEnv(height=4,width=3,win_streak=3)
     comp_play_1 = MCTS(playouts=200, player=1, C=1)
     comp_play_2 = MCTS(playouts=40, player=2, C=1)
 

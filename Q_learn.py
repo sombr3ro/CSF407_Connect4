@@ -65,7 +65,7 @@ class Q_learn_agent:
             if (player== -1):           #Opponent Player condtion
                 reward *= -1
         else:
-            return 10
+            return -20
         return reward
 
     def train(self, epoch=100, agent = None, game = None, alpha = 0.1, gamma = 0.99, greedy_prob=0.1):
@@ -239,9 +239,9 @@ if __name__=='__main__':
     MCTS_agent = MCTS(playouts=40,player=1)
     Q_learner = Q_learn_agent(player=2)
     game = gameEnv(height=5,width=4, win_streak=4)
-    #Q_learner.load_Q_table("Connect6x5learner_a0.1_g0.95.dat.gz")
-    Q_learner.train(epoch=2000,agent=MCTS_agent, game = game, alpha=0.1, gamma=0.95, greedy_prob=0.05) 
-    #Q_learner.test(epoch=100, agent=MCTS_agent, game= game)
+    Q_learner.load_Q_table("Connect5x4learner_a0.1_g0.95.dat.gz")
+    #Q_learner.train(epoch=2000,agent=MCTS_agent, game = game, alpha=0.1, gamma=0.95, greedy_prob=0.05) 
+    Q_learner.test(epoch=100, agent=MCTS_agent, game= game)
 
     '''
     for alpha in np.arange(0.5,10,0.5):

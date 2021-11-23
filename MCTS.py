@@ -36,6 +36,7 @@ class MCTS:
         self.C = C 
         self.root_node = Node()
         self.player = player
+        self.first_move = False             #Boolean value that stores if the first action has been performed
 
     def single_run(self, game_env):
         #Performs a single evaluation of the game and return the next best move
@@ -51,6 +52,9 @@ class MCTS:
 
             result = self.simulate(child, simulation_env)
             self.backpropagate(path, result)
+
+        if not self.first_move:                     #If first move has not been performed, perform the first move
+            self.first_move = True
 
         #print(game_env.get_action_space())
         #self.print_tree_details()
@@ -108,6 +112,9 @@ class MCTS:
             path.append(child)
             child.terminal_state = env.make_move(action, self.get_player_val(node.player))
             node = child
+
+            if (not self.first_move ) and (len(path)==5):           #To limit the path to depth 4 during the first run
+                break
         
         return node,path
 
@@ -207,17 +214,18 @@ class MCTS:
     def reset_agents(self):
         #Reset the MCTS trees for a new game
         self.root_node = Node()
+        self.first_move = False
 
 if __name__=='__main__':
 
-    game = gameEnv(height=4,width=3,win_streak=3)
+    game = gameEnv(height=6,width=5,win_streak=4)
     comp_play_1 = MCTS(playouts=200, player=1, C=1)
     comp_play_2 = MCTS(playouts=40, player=2, C=1)
 
-    human_player = False
+    human_player = True
     debug = False
-    verbose = False
-    total_runs = 100
+    verbose = True
+    total_runs = 1
 
     player1_wins = 0
     player2_wins = 0

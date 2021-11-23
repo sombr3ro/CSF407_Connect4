@@ -1,7 +1,8 @@
 from os import stat
 import numpy as np
 from gameEnv import gameEnv
-import pickle
+import gzip
+import json
 from MCTS import MCTS
 
 class Q_learn_agent:
@@ -46,21 +47,13 @@ class Q_learn_agent:
     
     def save_Q_table(self, file_name):
         #Save the Q_table
-        try:
-            filehandler = open(file_name, 'wb')
-            pickle.dump(self.Q_table, filehandler)
-            filehandler.close()
-        except:
-            print("Failed to save data in the file " + file_name)
+        with gzip.open(file_name,'w') as fout:
+            fout.write(json.dumps(self.Q_table).encode('utf-8'))
 
     def load_Q_table(self, filename):
         #Load Q_table from the file
-        try:
-            filehandler = open(filename, 'rb')
-            self.Q_table = pickle.load(filehandler)
-            filehandler.close()
-        except:
-            print("Failed to load the file "+filename)
+        with gzip.open(filename,'r') as fin:
+            self.Q_table = json.loads(fin.read().decode('utf-8'))
     
     def get_reward(self,terminal_state, player):
         #Returns reward according to the terminal state
@@ -72,7 +65,7 @@ class Q_learn_agent:
             if (player== -1):           #Opponent Player condtion
                 reward *= -1
         else:
-            return -50
+            return 10
         return reward
 
     def train(self, epoch=100, agent = None, game = None, alpha = 0.1, gamma = 0.99, greedy_prob=0.1):
@@ -170,7 +163,7 @@ class Q_learn_agent:
             game.reset_game()
             agent.reset_agents()
 
-        self.save_Q_table(f"Connect{game.h}x{game.w}learner_a{alpha}_g{gamma}.dat")
+        self.save_Q_table(f"Connect{game.h}x{game.w}learner_a{alpha}_g{gamma}.dat.gz")
         #print(f"Alpha {alpha}, Gamma {gamma} \t Wins: {wins}/{total_plays}\t losses: {losses}/{total_plays}\t Stalemates: {stalemates}/{total_plays}")
         pass
 
@@ -246,9 +239,9 @@ if __name__=='__main__':
     MCTS_agent = MCTS(playouts=40,player=1)
     Q_learner = Q_learn_agent(player=2)
     game = gameEnv(height=5,width=4, win_streak=4)
-    Q_learner.load_Q_table("Connect5x4learner_a0.1_g0.95.dat")
-    #Q_learner.train(epoch=2000,agent=MCTS_agent, game = game, alpha=0.1, gamma=0.95, greedy_prob=0.05) 
-    Q_learner.test(epoch=100, agent=MCTS_agent, game= game)
+    #Q_learner.load_Q_table("Connect6x5learner_a0.1_g0.95.dat.gz")
+    Q_learner.train(epoch=2000,agent=MCTS_agent, game = game, alpha=0.1, gamma=0.95, greedy_prob=0.05) 
+    #Q_learner.test(epoch=100, agent=MCTS_agent, game= game)
 
     '''
     for alpha in np.arange(0.5,10,0.5):

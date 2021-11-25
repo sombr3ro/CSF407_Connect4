@@ -1,5 +1,6 @@
 import numpy as np
 from gameEnv import gameEnv
+from agent import Agent
 
 # Parameters --------------------------------------------------------
 
@@ -29,16 +30,16 @@ class Node:
         self.is_leaf = True
         self.terminal_state = 0         #Terminal States: 0: Not a terminal state, 1: Terminal victory, -1: Stalemate
 
-class MCTS:
+class MCTS_agent(Agent):
 
-    def __init__(self, playouts = 20, C = 1, player=2):
+    def __init__(self, player, playouts = 20, C = 1):
+        super().__init__(player)
         self.playouts = playouts
         self.C = C 
         self.root_node = Node()
-        self.player = player
         self.first_move = False             #Boolean value that stores if the first action has been performed
 
-    def single_run(self, game_env):
+    def get_next_action(self, game_env):
         #Performs a single evaluation of the game and return the next best move
         
         #self.root_node.terminal_state = False       #No idea why
@@ -59,7 +60,7 @@ class MCTS:
         #print(game_env.get_action_space())
         #self.print_tree_details()
         
-        next_move = self.next_best_move(self.root_node)
+        next_move = self.next_best_move(self.root_node, game_env)
 
         '''
         if(next_move==None):
@@ -166,10 +167,14 @@ class MCTS:
             node.total_trials+=1
         pass
 
-    def next_best_move(self,node):
+    def next_best_move(self,node,game_env):
         #Returns the next best action estimated by the MCTS
         best_action = None
         moves = 0
+        
+        if not node.children:
+            return np.random.choice(game_env.get_action_space())
+        
         for action,child in node.children.items():
             if (moves < child.total_trials):
                 moves = child.total_trials
@@ -178,7 +183,7 @@ class MCTS:
                 return action
         return best_action
 
-    def update_node(self,action):
+    def update_agent_state(self,action):
         #Updates the root node of the MCTS object based on the action taken
         if not(self.root_node.children and (action in self.root_node.children)):
             self.root_node = Node()
@@ -210,8 +215,15 @@ class MCTS:
                 return 2
             else:
                 return 1
+    
+    def get_action_value(self, game_env, action):
+        node = self.root_node.children[action]
+        value = 0
+        if (node.total_trials > 0):
+            value = node.reward / node.total_trials
+        return value
 
-    def reset_agents(self):
+    def reset_agent(self):
         #Reset the MCTS trees for a new game
         self.root_node = Node()
         self.first_move = False
@@ -219,13 +231,13 @@ class MCTS:
 if __name__=='__main__':
 
     game = gameEnv(height=6,width=5,win_streak=4)
-    comp_play_1 = MCTS(playouts=200, player=1, C=1)
-    comp_play_2 = MCTS(playouts=40, player=2, C=1)
+    comp_play_1 = MCTS_agent(playouts=200, player=1, C=1)
+    comp_play_2 = MCTS_agent(playouts=40, player=2, C=1)
 
-    human_player = True
+    human_player = False
     debug = False
-    verbose = True
-    total_runs = 1
+    verbose = False
+    total_runs = 10
 
     player1_wins = 0
     player2_wins = 0
@@ -239,7 +251,7 @@ if __name__=='__main__':
             else:
                 if (verbose):
                     print("Player 1 makes a move")
-                move1 = comp_play_1.single_run(game)
+                move1 = comp_play_1.get_next_action(game)
             res = game.make_move(move1,1, track_history=debug)
             
             if (human_player or debug or verbose):
@@ -258,14 +270,14 @@ if __name__=='__main__':
                 break
 
             if not human_player:
-                comp_play_1.update_node(abs(move1))
-            comp_play_2.update_node(abs(move1))
+                comp_play_1.update_agent_state(abs(move1))
+            comp_play_2.update_agent_state(abs(move1))
 
             if (human_player or debug or verbose):
                 print(f"Player 2, make a move")
             
             if(move1>0):
-                move2 = comp_play_2.single_run(game)
+                move2 = comp_play_2.get_next_action(game)
             else:
                 move2 = int(input())
 
@@ -286,12 +298,12 @@ if __name__=='__main__':
                         print("Player 2 win ;)")
                     player2_wins+=1
                 break
-            comp_play_1.update_node(abs(move2))
-            comp_play_2.update_node(abs(move2))
+            comp_play_1.update_agent_state(abs(move2))
+            comp_play_2.update_agent_state(abs(move2))
         
         game.reset_game()
-        comp_play_1.reset_agents()
-        comp_play_2.reset_agents()
+        comp_play_1.reset_agent()
+        comp_play_2.reset_agent()
         
     print(f"Player 1 wins: {player1_wins}")
     print(f"Player 2 wins: {player2_wins}")

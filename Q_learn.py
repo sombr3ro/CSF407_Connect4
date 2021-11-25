@@ -6,7 +6,20 @@ import json
 from MCTS import MCTS_agent
 from agent import Agent
 
+#### Parameters ##################################################
+
+#Rewards
+TERMINAL_STATE_REWARD = 100
+STALEMATE_REWARD = -50
+TRANSIENT_STATE_REWARD = 0
+
+##################################################################
+
 class Q_learn_agent(Agent):
+    '''
+        Implements an agent that uses Q-Learning Reinforcement Learning Algorithm to 
+        learn to play the Connect4 game
+    '''
 
     def __init__(self, player, initial_Q_value=0):
         super().__init__(player)
@@ -15,28 +28,50 @@ class Q_learn_agent(Agent):
 
     def get_Qvalue(self, state, action, player):
         '''
-        We will use the concept of after-states to calculate the Q(S,a) value
-        First the board will perform the action a, then the state value function of the resultant state
-        will be looked up
+            Gets the Q(S,a) value associated with the state and action. It uses the concept of after-states to 
+            map the state-action to it's Q value. First the action is performed in the game, then the resultant 
+            board state is used to map it to the respective Q-value  
+
+            Arguments:
+                state: state parameter
+                action: action parameter
+                player: player id that performs the action
+            Returns:
+                Q_value: Q(state,action) value of the state
         '''
 
-        #Perform the action
-        temp_game = gameEnv(env_copy=state)
+        temp_game = gameEnv(env_copy=state)       #Perform the action
         temp_game.make_move(action, player)
         return self.get_Qvalue_afterstate(temp_game)
     
     def get_Qvalue_afterstate(self,state):
-        #Get Q_Value from after state as an argument
-        key = state.generate_string()
+        '''
+            Gets the Q-value associated with the after-state 'state'
+            Arguments:
+                state: afterstate whose Q-value has to be evaluated
+            Returns:
+                Q_value: Q_value of the afterstate 
+        '''
+
+        #Generate the key used to store the Q-value in the Q-value lookup dictionary
+        key = state.generate_string()       
+
         if (key in self.Q_table):
             return self.Q_table[key]
-        else:
+        else:         
+            #If after-state is not present in the dictionary/ seen for the first time by the agent
             self.Q_table[key] = self.initial_Q_value
+            
             return self.initial_Q_value
     
     def set_Qvalue(self,state, action, player, value):
         '''
-            Refers to the after-state implementation and stores it in that form
+            Sets the Q(s,a) value in the Q-table dictionary
+            Arguments:
+                state: state parameter
+                action: action parameter
+                player: player id of the player performing the action
+                value: Q(s,a) value to be set
         '''
 
         temp_game = gameEnv(env_copy=state)
@@ -47,32 +82,73 @@ class Q_learn_agent(Agent):
         pass
     
     def save_Q_table(self, file_name):
-        #Save the Q_table
+        '''
+            Saves the Q-table dictionary in a .gzip compressed file
+            Arguments:
+                file_name: file_name of the compressed file
+        '''
+
         with gzip.open(file_name,'w') as fout:
             fout.write(json.dumps(self.Q_table).encode('utf-8'))
+        pass
+
 
     def load_Q_table(self, filename):
-        #Load Q_table from the file
+        '''
+            Decompresses and loads the Q-table from a .gzip compressed file
+            Arguments:
+                filename: file name of the compressed file
+        '''
+        
         with gzip.open(filename,'r') as fin:
             self.Q_table = json.loads(fin.read().decode('utf-8'))
+        pass
+
     
-    def get_reward(self,terminal_state, player):
-        #Returns reward according to the terminal state
-        terminal_reward = 100
-        if(terminal_state==0):
-            reward = 0
-        elif(terminal_state==1):
+    def get_reward(self,state, player):
+        '''
+            Gets the reward associated with the state of the game
+            Argument: 
+                state: state of the game
+                player: player id encoding self player(1) /opponent player(-1)
+            Returns:
+                reward: Reward associated with the state of the game
+        '''
+        terminal_reward = TERMINAL_STATE_REWARD         
+
+        if(state==0):                           #Transient state 
+            reward = TRANSIENT_STATE_REWARD
+        elif(state==1):                         #Terminal state with victory of one player
             reward = terminal_reward
-            if (player== -1):           #Opponent Player condtion
+            if (player== -1):                   #Opponent Player condtion
                 reward *= -1
-        else:
-            return -50
+        else:                   
+            return STALEMATE_REWARD             #Stalemate Condition
+
         return reward
     
     def get_Q_table_size(self):
+        '''
+            Returns the total size of the lookup Q-table
+        '''
         return len(self.Q_table)
 
     def train(self, epoch=100, agent = None, game = None, alpha = 0.1, gamma = 0.99, greedy_prob=0.1, verbose = False):
+        '''
+            Function to train the agent using Q-learning RL algorithm to play the connect-4 game
+            Arguments:
+                epoch: Number of training epochs
+                agent: adversary Agent object against which the agent is trained to play
+                game: game environment in which the game is played
+                alpha: Q_learn parameter (Learning rate of the agent)
+                gamma: Q_learn parameter (Discount rate of rewards) 
+                greedy_prob: Q_learn parameter (Probability with which the agent chooses a random move)
+                verbose: if True, print verbose details about the training process
+            Returns:
+                total_wins: total wins by the Q-learn agent during the training process
+                total_losses: total losses by the agent
+                total_stalemates: total stalemates by the agent
+        '''
 
         wins = 0
         stalemates = 0 
@@ -128,10 +204,8 @@ class Q_learn_agent(Agent):
                     move2_reward = 0
                     if (state1==1):
                         wins+=1
-                        #print("Win by player2")
                     elif not(state1 == -1):
                         stalemates +=1
-                        #print("Stalemate first half")
 
                 #Q(S,a) update step
 
@@ -149,35 +223,30 @@ class Q_learn_agent(Agent):
                     best_q_val = 0
                     if(state2==1):
                         losses+=1
-                        #print("Win by player1")
                     elif not state2==-1:
                         stalemates+=1
-                        #print("Stalemate second half")
                 
+                #Q_learning update step
                 self.Q_table[key] = old_q_value + alpha*(total_reward + gamma*best_q_val - old_q_value)
 
                 if (not (state1 == 0)) or (not (state2 ==0)):
                     break
 
-            
             if((e+1)%100 == 0):
                 if verbose:
                     print(f"Train epoch {e+1}: Wins: {wins}/{total_plays}\t losses: {losses}/{total_plays}\t Stalemates: {stalemates}/{total_plays}")
                     print(f"Q_table size: {len(self.Q_table)}")
-                
                 total_wins+=wins
                 total_losses+= losses
                 total_stalemates+=stalemates
-                
                 total_plays=0
                 wins=0
                 stalemates=0
                 losses=0
             
-            
+            #Reset agents
             game.reset_game()
             agent.reset_agent()
-        #print(f"Alpha {alpha}, Gamma {gamma} \t Wins: {wins}/{total_plays}\t losses: {losses}/{total_plays}\t Stalemates: {stalemates}/{total_plays}")
         
         total_wins+=wins
         total_losses+= losses
@@ -185,13 +254,27 @@ class Q_learn_agent(Agent):
 
         return total_wins,total_losses,total_stalemates
 
+
+
+
     def test(self, epoch=100, agent = None, game = None, verbose=False):
+        '''
+            Function to evaluate the agent by playing greedingly according to the Q-values
+            Arguments:
+                epochs: total epochs of testing
+                agent: Adversary agent object
+                game: game environment
+                verbose: If true, prints verbose details regarding the agent
+            Returns:
+                wins: wins by the Q-learn agent
+                losses: losses by the agent
+                stalemates: Stalemates by the agent
+        '''
         wins = 0
         losses = 0
         total_plays = 0
         stalemates = 0
         
-
         for e in range(epoch):
 
             game.reset_game()
@@ -229,12 +312,25 @@ class Q_learn_agent(Agent):
         return wins,losses,stalemates
 
     def get_action_value(self, game_env, action):
+        '''
+            Get the value of the next state achieved by the input action
+            Arguments:
+                action: Action whose value has to be estimated
+            Returns:
+                value: Value of the (state,action)
+        '''
         value = self.get_Qvalue(game_env,action,self.player)
         return value
 
 
     def get_next_action(self, game_env):
-        #Return the best move according to the Q-values 
+        '''
+            Gets the next action according to the Q_learning RL algorithm
+            Arguments: 
+                game_env: game environment 
+            Returns:
+                best_action: best action according to the Q algorithm
+        '''
 
         action_space = game_env.get_action_space()
         best_q_val = -np.inf

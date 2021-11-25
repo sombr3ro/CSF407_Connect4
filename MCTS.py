@@ -2,7 +2,7 @@ import numpy as np
 from gameEnv import gameEnv
 from agent import Agent
 
-# Parameters --------------------------------------------------------
+#### Parameters ######################################################
 
 height = 6
 width = 5
@@ -10,27 +10,25 @@ mcts_C = 2
 player1_playouts = 40
 player2_playouts2 = 200
 
-# -------------------------------------------------------------------
-
-'''
-    TO DO
-    1) Implement the limitation of depth 4 for the first move
-    2) Create a function that returns the average reward of the action chosen
-    3) For debugging purposes, try to implement a way to visualize the graph
-    4) Improve Documentation
-'''
+######################################################################
 
 class Node:
+    '''
+        Implements Nodes for trees used in Monte Carlo Tree Search
+    '''
 
     def __init__(self):
-        self.total_trials = 0
+        self.total_trials = 0   
         self.player = 1     #1: player, -1: Adversary
-        self.reward = 0
-        self.children = dict()
-        self.is_leaf = True
+        self.reward = 0     
+        self.children = dict()          #Stores edges as dictionary: key->action, value->node reached by the action
+        self.is_leaf = True             #Boolean value to store if node is a leaf
         self.terminal_state = 0         #Terminal States: 0: Not a terminal state, 1: Terminal victory, -1: Stalemate
 
 class MCTS_agent(Agent):
+    '''
+        Contains implementation of Monte Carlo Tree Search algorithm to play the game Connect4
+    '''
 
     def __init__(self, player, playouts = 20, C = 1):
         super().__init__(player)
@@ -40,9 +38,13 @@ class MCTS_agent(Agent):
         self.first_move = False             #Boolean value that stores if the first action has been performed
 
     def get_next_action(self, game_env):
-        #Performs a single evaluation of the game and return the next best move
-        
-        #self.root_node.terminal_state = False       #No idea why
+        '''
+            Performs Monte Carlo Tree Search and returns the next best action
+            Arguments:
+                game_env -> game environment
+            Returns:
+                next_move -> best move according to the agent
+        '''
 
         for p in range(self.playouts):
             simulation_env = gameEnv(game_env)
@@ -57,26 +59,14 @@ class MCTS_agent(Agent):
         if not self.first_move:                     #If first move has not been performed, perform the first move
             self.first_move = True
 
-        #print(game_env.get_action_space())
-        #self.print_tree_details()
-        
         next_move = self.next_best_move(self.root_node, game_env)
-
-        '''
-        if(next_move==None):
-            #print(s)
-            print(f"terminal state {self.root_node.terminal_state}")
-            print(self.root_node.is_leaf)
-            print(self.root_node.total_trials)
-            print(self.root_node.reward)
-            self.print_tree_details()
-            game_env.print_history()
-            game_env.print_grid()
-        '''
-
+    
         return next_move
 
     def print_tree_details(self):
+        '''
+            Prints debugging details regarding the tree constructed
+        '''
         print(f"Total Size of the tree is: {self.size_of_tree(self.root_node)}")
         print(f"Total depth of the tree is: {self.depth_of_tree(self.root_node)}")
         print(f"Average rewards for each future action")
@@ -86,7 +76,14 @@ class MCTS_agent(Agent):
         pass
     
     def UCB1(self, node):
-        #Returns the node with the best UCB value
+        '''
+            Returns the child node with the best UCB1 value
+            Arguments:
+                node: parent node whose child has to be selected
+            Returns:
+                next_action: action that leads to child node with the best UCB value
+                next_node: child node with the best UCB value 
+        '''
         max_val = - np.inf
         next_node = None
         next_action = None
@@ -105,7 +102,15 @@ class MCTS_agent(Agent):
         return next_action, next_node
 
     def selection(self,node, env):
-        #Performs selection using UCB based policy
+        '''
+            Performs selection for MCTS algorithm using UCB based policy
+            Arguments:
+                node: node from which the selection process starts
+                env: environment over which game is played
+            Returns:
+                node: leaf node selected by the selection algorithm
+                path: Array containing all the nodes in the tree path taken
+        '''
         path = []
         path.append(node)
         while (not node.is_leaf ) and (node.terminal_state==0):
@@ -114,13 +119,22 @@ class MCTS_agent(Agent):
             child.terminal_state = env.make_move(action, self.get_player_val(node.player))
             node = child
 
-            if (not self.first_move ) and (len(path)==5):           #To limit the path to depth 4 during the first run
+            #To limit the path to depth 4 during the first run
+            if (not self.first_move ) and (len(path)==5):           
                 break
         
         return node,path
 
     def expand_node(self,node,path,env):
-        #Expands a node and selects a random child of it to playout on
+        '''
+            Expands the input leaf node and selects a random child of it to perform the playout on
+            Arguments:
+                node: leaf node that is expanded
+                path: tree path taken by the MCTS algo
+                env: Game environment
+            Returns:
+                node: Random child of the leaf node after expansion 
+        '''
         if not(node.terminal_state==0):
             return node
 
@@ -137,7 +151,15 @@ class MCTS_agent(Agent):
         return node
 
     def simulate(self,node,env):
-        #Performs the simulation function
+        '''
+            Performs the simulation algorithm by playing out the game on the input node by randomly sampling actions
+            from the action space until it reaches a terminal state
+            Arguments:
+                node: leaf node on which simulation is performed
+                env: game environment
+            Returns:
+                reward: final reward from the game
+        '''
         if not(node.terminal_state==0):
             return node.player*node.terminal_state
 
@@ -152,7 +174,12 @@ class MCTS_agent(Agent):
         return player*reward
 
     def backpropagate(self, path, result):
-        #Performs backprop after a single playout
+        '''
+            Backpropagates the reward over the tree path taken and updates all the nodes in the path
+            Argument:
+                path: array containing the nodes visited
+                result: final reward of the game
+        '''
         for node in reversed(path):
             if result==1:
                 if node.player==1:
@@ -168,10 +195,18 @@ class MCTS_agent(Agent):
         pass
 
     def next_best_move(self,node,game_env):
-        #Returns the next best action estimated by the MCTS
+        '''
+            Returns the next best action according to the MCTS algorithm after a single evaluation
+            Argument:
+                node: root node from which action has to be chosen
+                game_env: Game Environment
+            Return:
+                best_action: action that leads to the most visited child node (best action according to MCTS)
+        '''
         best_action = None
         moves = 0
         
+        #If the node has no children, randomly sample an action from the action space
         if not node.children:
             return np.random.choice(game_env.get_action_space())
         
@@ -181,10 +216,17 @@ class MCTS_agent(Agent):
                 best_action = action
             if (child.terminal_state==1):
                 return action
+        
         return best_action
 
     def update_agent_state(self,action):
-        #Updates the root node of the MCTS object based on the action taken
+        '''
+            Updates the root node of the Monte Carlo Tree based on the action taken
+            Arguments:
+                action: Action taken
+        '''
+
+        #If the root node does not have any children or has no child node associated with that action
         if not(self.root_node.children and (action in self.root_node.children)):
             self.root_node = Node()
             return
@@ -193,21 +235,35 @@ class MCTS_agent(Agent):
         pass
 
     def size_of_tree(self,node):
-        #Calculates total size of the tree
+        '''
+            Calculates the total size of the tree rooted at the input node
+            Argument:
+                node: Root node of the tree to be evaluated
+            Returns:
+                total_size: Total number of nodes in the tree rooted at input node
+        '''
         total_size = 1
         for child in node.children.values():
             total_size+= self.size_of_tree(child)
         return total_size 
 
     def depth_of_tree(self,node):
+        '''
+            Calculates the depth of tree
+            Argument:
+                node: Root node from which depth is measured
+            Returns:
+                depth: depth of the tree rooted at the input node 
+        '''
         depth = 1
         for child in node.children.values():
             depth = max(depth,self.depth_of_tree(child)+1)
         return depth 
 
     def get_player_val(self,player):
-        #Returns the player id to return to the game world object
-
+        '''
+            Gets the value of the player
+        '''
         if (player==1):
             return self.player
         else:
@@ -217,14 +273,26 @@ class MCTS_agent(Agent):
                 return 1
     
     def get_action_value(self, game_env, action):
+        '''
+            Gets the value associated with the input action over the game
+            Arguments:
+                game_env: Game environment
+                action: Action to be evaluated
+            Returns:
+                value: Value associated with the input action
+        '''
         node = self.root_node.children[action]
         value = 0
+        
         if (node.total_trials > 0):
             value = node.reward / node.total_trials
+        
         return value
 
     def reset_agent(self):
-        #Reset the MCTS trees for a new game
+        '''
+            Resets the MCTS agent for a new game
+        '''
         self.root_node = Node()
         self.first_move = False
 

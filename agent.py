@@ -8,6 +8,13 @@ class Agent:
         pass
 
     def get_next_action(self, game_env):
+        '''
+            Evaluates the game environment and returns the next best action according to the agent
+            Arguments:
+                game_env -> game environment
+            Returns:
+                next_move -> best move according to the agent
+        '''
         pass
 
     def update_agent_state(self, action):

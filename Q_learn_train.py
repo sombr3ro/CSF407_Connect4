@@ -1,3 +1,7 @@
+'''
+    Python script to train the Q-learn agent 
+'''
+
 from gameEnv import gameEnv
 from MCTS import MCTS_agent
 from Q_learn import Q_learn_agent

@@ -38,7 +38,8 @@ if __name__=='__main__':
     game = gameEnv(height=board_rows, width=board_cols, win_streak=4)
     if (load_file):
         Q_agent.load_Q_table(gzip_file_name)
-    '''
+    
+
     wins = 0
     losses = 0
     stalemates=0
@@ -78,7 +79,7 @@ if __name__=='__main__':
     plt.ylabel("Percentage of events")
     plt.ylim(0,100)
     fig.savefig("./Q_learn_metrics_final_2.png")
-    '''
+    
 
     wins=0
     losses=0

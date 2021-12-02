@@ -5,6 +5,7 @@ import gzip
 import json
 from MCTS import MCTS_agent
 from agent import Agent
+import os
 
 #### Parameters ##################################################
 
@@ -84,24 +85,37 @@ class Q_learn_agent(Agent):
     def save_Q_table(self, file_name):
         '''
             Saves the Q-table dictionary in a .gzip compressed file
+            in the directory Q_learn_dat
             Arguments:
                 file_name: file_name of the compressed file
         '''
+        
+        curr_path = os.getcwd()
+        os.chdir(os.path.join(curr_path,"Q_learn_dat",""))
 
         with gzip.open(file_name,'w') as fout:
             fout.write(json.dumps(self.Q_table).encode('utf-8'))
+        
+        os.chdir(curr_path)
         pass
 
 
     def load_Q_table(self, filename):
         '''
             Decompresses and loads the Q-table from a .gzip compressed file
+            in the directory Q_learn_dat
             Arguments:
                 filename: file name of the compressed file
         '''
         
+        curr_path = os.getcwd()
+        os.chdir(os.path.join(curr_path,"Q_learn_dat",""))
+
         with gzip.open(filename,'r') as fin:
             self.Q_table = json.loads(fin.read().decode('utf-8'))
+        
+        os.chdir(curr_path)
+
         pass
 
     
@@ -346,25 +360,9 @@ class Q_learn_agent(Agent):
 
 if __name__=='__main__':
 
-    MCTS_player = MCTS_agent(playouts=40,player=1)
+    MCTS_player = MCTS_agent(playouts=25,player=1, C=1)
     Q_learner = Q_learn_agent(player=2, initial_Q_value=0)
     game = gameEnv(height=4,width=5, win_streak=4)
-    #Q_learner.load_Q_table("Connect4x5learner_a0.1_g0.95.dat.gz")
-    Q_learner.train(epoch=1000,agent=MCTS_player, game = game, alpha=0.1, gamma=0.95, greedy_prob=0.05, verbose = True) 
-    #Q_learner.save_Q_table(f"Connect{game.h}x{game.w}learner.dat.gz")
-    #Q_learner.test(epoch=100, agent=MCTS_agent, game= game, verbose = True)
 
-    '''
-    for alpha in np.arange(0.5,10,0.5):
-        for gamma in np.arange(0.1,1.0,0.1):
-            Q_learner.train(epoch=1000,agent=MCTS_agent, game = game, alpha=alpha, gamma=gamma)
-    '''
-
-
-    
-
-
-    
-
-        
-
+    Q_learner.load_Q_table("Q_learn_v2.dat.gz")
+    Q_learner.test(epoch=100, agent=MCTS_player, game= game, verbose = True)

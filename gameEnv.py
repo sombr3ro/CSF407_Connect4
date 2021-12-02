@@ -245,5 +245,3 @@ if __name__=='__main__':
             break
         
         player = (player+1)%2
-
-        

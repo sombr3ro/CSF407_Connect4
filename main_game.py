@@ -5,12 +5,11 @@ from MCTS import MCTS_agent
 
 ### Parameters ###################################
 
+# Q_learning agent
+qlearn_filename = "Q_learn.dat.gz"
 game_rows = 4
 game_cols = 5
 win_streak = 4
-
-# Q_learning agent
-qlearn_filename = "Q_learn.dat.gz"
 
 ##################################################
 
@@ -24,23 +23,26 @@ if __name__=='__main__':
 
     player1 = None
     player2 = None
+    game = None
     player1_name = ""
     player2_name = ""
 
     if (choice==1):
-        player1 = MCTS_agent(player=1, playouts=200, C=1)
+        print(f"\nPlaying Connect-4 ( 5 columns x 6 rows): MCTS_200 vs MCTS_40")
+        player1 = MCTS_agent(player=1, playouts=200, C=2)
         player1_name = "MCTS agent with 200 playouts"
-        player2 = MCTS_agent(player=2, playouts=40, C=1)
+        player2 = MCTS_agent(player=2, playouts=40, C=2)
         player2_name = "MCTS agent with 40 playouts"
+        game = gameEnv(height=6, width = 5, win_streak= win_streak)
     elif (choice==2):
+        print(f"\nPlaying Connect-4 ( 5 columns x 4 rows): MCTS_n vs Q agent")
         player1 = MCTS_agent(player=1, playouts=25, C=1)
         player1_name = "MCTS agent with n playouts"
         player2 = Q_learn_agent(player=2)
         player2.load_Q_table(qlearn_filename)
         player2_name = "Q-learning agent"
+        game = gameEnv(height=game_rows, width = game_cols, win_streak= win_streak)
     
-    game = gameEnv(height=game_rows, width = game_cols, win_streak= win_streak)
-
     print("\nGame starts\n")
     game.print_grid()
     print()
